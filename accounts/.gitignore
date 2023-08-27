@@ -1,0 +1,7 @@
+*tags*
+.env
+venv
+env
+*__pycache__*
+
+*.db

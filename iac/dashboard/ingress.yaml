@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+  name: dashboard
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: alantouring.ir
+      http:
+        paths:
+          - backend:
+              service:
+                name: dashboard
+                port:
+                  name: http
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+      - alantouring.ir
+      secretName: tls-alantouring.ir

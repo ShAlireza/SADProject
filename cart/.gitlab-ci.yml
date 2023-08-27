@@ -1,0 +1,81 @@
+stages:
+    - check-env
+    - build
+    - test
+    - deploy
+
+
+
+variables:
+    IMAGE_TAG: $CI_PIPELINE_ID-$CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA
+    IMAGE_URL: $REGISTRY_URL/$CI_PROJECT_PATH
+
+var-check:
+    stage: check-env
+    tags:
+      - kuber
+      - production
+
+    image:
+        name: $REGISTRY_URL/alpine:3.16.0
+        entrypoint: [""]
+    script:
+        - echo "reg ====== $REGISTRY_URL"
+        - echo "image tag == $IMAGE_TAG"
+        - echo "image url == $IMAGE_URL"
+        - echo "dag repo === $DAG_REPO"
+
+build:
+    image:
+        name: $REGISTRY_URL/kaniko:debug
+        entrypoint: [""]
+    stage: build
+    tags:
+      - kuber
+      - production
+    only:
+        refs:
+            - main
+            - stg
+            - dev
+    except:
+        changes:
+            - "*.md"
+    before_script:
+        - mkdir -p /kaniko/.docker/
+        - echo "{\"auths\":{\"$REGISTRY_URL\":{\"username\":\"$REGISTRY_USERNAME\",\"password\":\"$REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    script:
+        - echo build and push image $IMAGE_URL:$IMAGE_TAG
+        - echo "build and push new image:"
+        - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile
+            --destination $IMAGE_URL:$IMAGE_TAG
+
+
+prd:update-manifests:
+    stage: deploy
+    tags:
+      - kuber
+      - production
+    image:
+        name: $REGISTRY_URL/infra/kustomize:1.0.0
+        entrypoint: [""]
+    only:
+        refs:
+            - main
+    before_script:
+        - echo "update image version of the manifest in the git repo"
+        - CD_REPO=$CD_REPO_BASE_PATH/$CI_PROJECT_PATH.git
+        - DEPLOY_ENV=prd
+        - IMAGE_PLACEHOLDER=cicd-image-place-holder
+    script:
+        - echo "update manifest repo:"
+        - cd /tmp
+        - git clone $CD_REPO
+        - cd $CI_PROJECT_NAME/environments/$DEPLOY_ENV
+        - kustomize edit set image $IMAGE_URL:$IMAGE_TAG
+        - git add kustomization.yml
+        - git config user.email "cicd@alantouring.com"
+        - git config user.name "cicd"
+        - git commit -m "update image for CD related to $CI_PROJECT_NAME"
+        - git push
+

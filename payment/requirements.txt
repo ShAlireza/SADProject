@@ -1,0 +1,13 @@
+fastapi==0.79.0
+uvicorn==0.17.6
+pypika-tortoise==0.1.6
+tortoise-orm==0.19.2
+asyncpg==0.26.0
+aerich==0.6.3
+aiohttp==3.8.1
+aiodns==3.0.0
+celery==5.2.7
+requests==2.25.1
+redis==4.3.4
+flower==1.2.0
+zeep==4.1.0
